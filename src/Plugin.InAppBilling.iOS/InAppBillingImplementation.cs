@@ -226,7 +226,7 @@ namespace Plugin.InAppBilling
 		/// <param name="payload">Developer specific payload (can not be null)</param>
 		/// <param name="verifyPurchase">Verify Purchase implementation</param>
 		/// <returns>Purchase details</returns>
-		public async override Task<InAppBillingPurchase> UpgradePurchasedSubscriptionAsync(string oldProductId, string newProductId, string payload, IInAppBillingVerifyPurchase verifyPurchase = null)
+		public async override Task<InAppBillingPurchase> UpgradePurchasedSubscriptionAsync(string oldProductId, string newProductId, string payload, IInAppBillingVerifyPurchase verifyPurchase = null, bool prorate = true)
 		{
 			throw new NotImplementedException("iOS not supported. Apple store manages upgrades natively when subscriptions of the same group are purchased.");
 		}

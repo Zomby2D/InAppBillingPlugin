@@ -28,15 +28,16 @@ A subscription can also be upgraded/downgraded/sidegraded to another subscriptio
 
 ```csharp
 /// <summary>
-/// (Android specific) Upgrade/Downagrade a previously purchased subscription
+/// (Android specific) Upgrade/Downgrade a previously purchased subscription
 /// </summary>
 /// <param name="oldProductId">Sku or ID of product that needs to be upgraded</param>
 /// <param name="newProductId">Sku or ID of product that will replace the old one</param>
 /// <param name="payload">Developer specific payload (can not be null)</param>
 /// <param name="verifyPurchase">Verify Purchase implementation</param>
+/// <param name="prorate">Apply time proration (default = true)</param>
 /// <returns>Purchase details</returns>
 /// <exception cref="InAppBillingPurchaseException">If an error occures during processing</exception>
-Task<InAppBillingPurchase> UpgradePurchasedSubscriptionAsync(string oldProductId, string newProductId, string payload, IInAppBillingVerifyPurchase verifyPurchase = null);
+Task<InAppBillingPurchase> UpgradePurchasedSubscriptionAsync(string oldProductId, string newProductId, string payload, IInAppBillingVerifyPurchase verifyPurchase = null, bool prorate = true);
 ```
 
 Example:

@@ -62,7 +62,7 @@ namespace Plugin.InAppBilling.Abstractions
 		/// <param name="payload">Developer specific payload (can not be null)</param>
 		/// <param name="verifyPurchase">Verify Purchase implementation</param>
 		/// <returns>Purchase details</returns>
-		public abstract Task<InAppBillingPurchase> UpgradePurchasedSubscriptionAsync(string oldProductId, string newProductId, string payload, IInAppBillingVerifyPurchase verifyPurchase = null);
+		public abstract Task<InAppBillingPurchase> UpgradePurchasedSubscriptionAsync(string oldProductId, string newProductId, string payload, IInAppBillingVerifyPurchase verifyPurchase = null, bool prorate = true);
 
 		/// <summary>
 		/// Consume a purchase with a purchase token.

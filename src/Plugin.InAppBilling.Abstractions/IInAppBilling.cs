@@ -65,7 +65,7 @@ namespace Plugin.InAppBilling.Abstractions
 		/// <param name="verifyPurchase">Verify Purchase implementation</param>
 		/// <returns>Purchase details</returns>
 		/// <exception cref="InAppBillingPurchaseException">If an error occures during processing</exception>
-		Task<InAppBillingPurchase> UpgradePurchasedSubscriptionAsync(string oldProductId, string newProductId, string payload, IInAppBillingVerifyPurchase verifyPurchase = null);
+		Task<InAppBillingPurchase> UpgradePurchasedSubscriptionAsync(string oldProductId, string newProductId, string payload, IInAppBillingVerifyPurchase verifyPurchase = null, bool prorate = true);
 
 		/// <summary>
 		/// Consume a purchase with a purchase token.
