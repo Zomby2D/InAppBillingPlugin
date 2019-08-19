@@ -146,29 +146,23 @@ namespace Plugin.InAppBilling
 			return getSkuDetailsTask;
 		}
 
-		/// <summary>
-		/// Get all current purhcase for a specifiy product type.
-		/// </summary>
-		/// <param name="itemType">Type of product</param>
-		/// <param name="verifyPurchase">Interface to verify purchase</param>
-		/// <returns>The current purchases</returns>
-		public async override Task<IEnumerable<InAppBillingPurchase>> GetPurchasesAsync(ItemType itemType, IInAppBillingVerifyPurchase verifyPurchase = null)
-		{
+		protected async override Task<IEnumerable<InAppBillingPurchase>> GetPurchasesAsync(ItemType itemType, IInAppBillingVerifyPurchase verifyPurchase, string verifyOnlyProductId)
+        {
 			if (serviceConnection?.Service == null)
 			{
 				throw new InAppBillingPurchaseException(PurchaseError.ServiceUnavailable, "You are not connected to the Google Play App store.");
 			}
 
-			List<Purchase> purchases = null;
-			switch (itemType)
-			{
-				case ItemType.InAppPurchase:
-					purchases = await GetPurchasesAsync(ITEM_TYPE_INAPP, verifyPurchase);
-					break;
-				case ItemType.Subscription:
-					purchases = await GetPurchasesAsync(ITEM_TYPE_SUBSCRIPTION, verifyPurchase);
-					break;
-			}
+            List<Purchase> purchases = null;
+            switch (itemType)
+            {
+                case ItemType.InAppPurchase:
+                    purchases = await GetPurchasesAsync(ITEM_TYPE_INAPP, verifyPurchase, verifyOnlyProductId);
+                    break;
+                case ItemType.Subscription:
+                    purchases = await GetPurchasesAsync(ITEM_TYPE_SUBSCRIPTION, verifyPurchase, verifyOnlyProductId);
+                    break;
+            }
 
 			if (purchases == null)
 				return null;
@@ -191,12 +185,12 @@ namespace Plugin.InAppBilling
 
 		}
 
-		Task<List<Purchase>> GetPurchasesAsync(string itemType, IInAppBillingVerifyPurchase verifyPurchase)
-		{
-			var getPurchasesTask = Task.Run(async () =>
-			{
-				string continuationToken = string.Empty;
-				var purchases = new List<Purchase>();
+        Task<List<Purchase>> GetPurchasesAsync(string itemType, IInAppBillingVerifyPurchase verifyPurchase, string verifyOnlyProductId = null)
+        {
+            var getPurchasesTask = Task.Run(async () =>
+            {
+                string continuationToken = string.Empty;
+                var purchases = new List<Purchase>();
 
 				do
 				{
@@ -224,8 +218,11 @@ namespace Plugin.InAppBilling
 						string data = dataList[i];
 						string sign = signatures[i];
 
-						var purchase = JsonConvert.DeserializeObject<Purchase>(data);
-						if (verifyPurchase == null || await verifyPurchase.VerifyPurchase(data, sign, purchase.ProductId, purchase.OrderId))
+                        var purchase = JsonConvert.DeserializeObject<Purchase>(data);
+
+						if (verifyPurchase == null || (verifyOnlyProductId != null && !verifyOnlyProductId.Equals(purchase.ProductId)))
+							purchases.Add(purchase);
+						else if (await verifyPurchase.VerifyPurchase(data, sign, purchase.ProductId, purchase.OrderId))
 							purchases.Add(purchase);
 					}
 
@@ -482,15 +479,17 @@ namespace Plugin.InAppBilling
 
 		}
 
-		/// <summary>
-		/// Connect to billing service
-		/// </summary>
-		/// <returns>If Success</returns>
-		public override Task<bool> ConnectAsync(ItemType itemType = ItemType.InAppPurchase)
-		{
-			serviceConnection = new InAppBillingServiceConnection(Context, itemType);
-			return serviceConnection.ConnectAsync();
-		}
+        /// <summary>
+        /// Connect to billing service
+        /// </summary>
+        /// <returns>If Success</returns>
+        public override Task<bool> ConnectAsync(ItemType itemType = ItemType.InAppPurchase)
+        {
+            serviceConnection = new InAppBillingServiceConnection(Context, itemType);
+            tcsPurchase?.TrySetCanceled();
+            tcsPurchase = null;
+            return serviceConnection.ConnectAsync();
+        }
 
 		/// <summary>
 		/// Disconnect from the billing service
@@ -651,35 +650,35 @@ namespace Plugin.InAppBilling
 					var purchaseData = data.GetStringExtra(RESPONSE_IAP_DATA);
 					var dataSignature = data.GetStringExtra(RESPONSE_IAP_DATA_SIGNATURE);
 
-					tcsPurchase?.TrySetResult(new PurchaseResponse
-					{
-						PurchaseData = purchaseData,
-						DataSignature = dataSignature
-					});
-					break;
-				case RESPONSE_CODE_RESULT_USER_CANCELED:
-					tcsPurchase.SetException(new InAppBillingPurchaseException(PurchaseError.UserCancelled));
-					break;
-				case RESPONSE_CODE_RESULT_SERVICE_UNAVAILABLE:
-					tcsPurchase.SetException(new InAppBillingPurchaseException(PurchaseError.ServiceUnavailable));
-					break;
-				case BILLING_RESPONSE_RESULT_ITEM_UNAVAILABLE:
-					tcsPurchase.SetException(new InAppBillingPurchaseException(PurchaseError.ItemUnavailable));
-					break;
-				case BILLING_RESPONSE_RESULT_DEVELOPER_ERROR:
-					tcsPurchase.SetException(new InAppBillingPurchaseException(PurchaseError.DeveloperError));
-					break;
-				case BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED:
-					tcsPurchase.SetException(new InAppBillingPurchaseException(PurchaseError.AlreadyOwned));
-					break;
-				case BILLING_RESPONSE_RESULT_ITEM_NOT_OWNED:
-					tcsPurchase.SetException(new InAppBillingPurchaseException(PurchaseError.NotOwned));
-					break;
-				default:
-					tcsPurchase.SetException(new InAppBillingPurchaseException(PurchaseError.GeneralError, responseCode.ToString()));
-					break;
-			}
-		}
+		            tcsPurchase?.TrySetResult(new PurchaseResponse
+		            {
+			            PurchaseData = purchaseData, DataSignature = dataSignature
+		            });
+		            break;
+	            case RESPONSE_CODE_RESULT_USER_CANCELED:
+		            tcsPurchase?.TrySetException(new InAppBillingPurchaseException(PurchaseError.UserCancelled));
+		            break;
+	            case RESPONSE_CODE_RESULT_SERVICE_UNAVAILABLE:
+		            tcsPurchase?.TrySetException(new InAppBillingPurchaseException(PurchaseError.ServiceUnavailable));
+		            break;
+	            case BILLING_RESPONSE_RESULT_ITEM_UNAVAILABLE:
+		            tcsPurchase?.TrySetException(new InAppBillingPurchaseException(PurchaseError.ItemUnavailable));
+		            break;
+	            case BILLING_RESPONSE_RESULT_DEVELOPER_ERROR:
+		            tcsPurchase?.TrySetException(new InAppBillingPurchaseException(PurchaseError.DeveloperError));
+		            break;
+	            case BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED:
+		            tcsPurchase?.TrySetException(new InAppBillingPurchaseException(PurchaseError.AlreadyOwned));
+		            break;
+	            case BILLING_RESPONSE_RESULT_ITEM_NOT_OWNED:
+		            tcsPurchase?.TrySetException(new InAppBillingPurchaseException(PurchaseError.NotOwned));
+		            break;
+	            default:
+		            tcsPurchase?.TrySetException(
+			            new InAppBillingPurchaseException(PurchaseError.GeneralError, responseCode.ToString()));
+		            break;
+            }
+        }
 
 		[Preserve(AllMembers = true)]
 		class PurchaseResponse
