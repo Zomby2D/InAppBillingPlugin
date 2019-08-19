@@ -1,0 +1,1 @@
+tools\nuget add Build\nuget\Plugin.InAppBilling.CompuSport.2.1.0.2.nupkg -Source \CompuSport\NuGet\
