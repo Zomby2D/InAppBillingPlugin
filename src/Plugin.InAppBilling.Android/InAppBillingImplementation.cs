@@ -630,12 +630,6 @@ namespace Plugin.InAppBilling
 				return;
 			}
 
-			if (resultCode == Result.Canceled && tcsPurchase != null && !tcsPurchase.Task.IsCompleted)
-			{
-				tcsPurchase.SetException(new InAppBillingPurchaseException(PurchaseError.UserCancelled));
-				return;
-			}
-
 			if (data == null)
 			{
 				return;
